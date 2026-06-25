@@ -1,0 +1,39 @@
+name: hydro_track
+description: "NemSens Dehidratasyon Takip Uygulaması"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  fl_chart: ^0.66.0
+  cupertino_icons: ^1.0.8
+  path_provider: ^2.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/app_logo.png"
+  adaptive_icon_background: "#121212"
+  adaptive_icon_foreground: "assets/app_logo.png"
+
+flutter_native_splash:
+  color: "#121212"
+  image: "assets/app_logo.png"
+  android_12:
+    image: "assets/app_logo.png"
+    color: "#121212"
+
+flutter:
+  uses-material-design: true
