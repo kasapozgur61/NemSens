@@ -17,7 +17,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final _authService = AuthService();
   List<FlSpot> chartData = [];
-  double currentConductivity = 150.0; // Filtrelenmiş iletkenlik değeri
+  double currentConductivity = 2500.0; // Filtrelenmiş iletkenlik değeri
   int timeCounter = 0;
   Timer? _timer;
   int _saveCounter = 0;
@@ -33,7 +33,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // İlk grafiği doldurmak için başlangıç verileri
     for (int i = 0; i < 10; i++) {
-      chartData.add(FlSpot(i.toDouble(), 140.0 + Random().nextDouble() * 20));
+      chartData.add(FlSpot(i.toDouble(), 2400.0 + Random().nextDouble() * 200));
     }
     timeCounter = 9;
     
@@ -66,14 +66,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() {
       timeCounter++;
       // Donanımdan gelen gürültülü ham veri simülasyonu
-      double rawInflow = currentConductivity + (Random().nextDouble() * 25) - 10;
+      double rawInflow = currentConductivity + (Random().nextDouble() * 400) - 150;
       
       // Sizin yazdığınız hareketli ortalama filtresinden geçiyor
       currentConductivity = _processor.filterData(rawInflow);
       
       // Sınır kontrolleri
-      if (currentConductivity < 100) currentConductivity = 100;
-      if (currentConductivity > 450) currentConductivity = 450;
+      if (currentConductivity < 500) currentConductivity = 500;
+      if (currentConductivity > 9500) currentConductivity = 9500;
 
       // Risk hesaplaması merkezi işleyiciye devredildi
       _currentRisk = _processor.calculateRisk(currentConductivity);
@@ -224,11 +224,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             "ANLIK DURUM",
             style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 1.5),
           ),
-          const SizedBox(height: 12),
-          Text(
-            _processor.getRiskString(_currentRisk),
-           style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: _processor.getRiskColor(_currentRisk)),
-          ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -330,8 +325,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               borderData: FlBorderData(show: false),
               minX: chartData.isEmpty ? 0 : chartData.first.x,
               maxX: chartData.isEmpty ? 0 : chartData.last.x,
-              minY: 80,
-              maxY: 500,
+              minY: 500,
+              maxY: 10000,
               lineBarsData: [
                 LineChartBarData(
                   spots: chartData,

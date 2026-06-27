@@ -20,9 +20,9 @@ class DataProcessor {
 
   // 2. Risk Analizi ve Eşik Değer Algoritması
   DehydrationRisk calculateRisk(double conductivity) {
-    if (conductivity < 220) {
+    if (conductivity < 3000) {
       return DehydrationRisk.normal;
-    } else if (conductivity >= 220 && conductivity < 340) {
+    } else if (conductivity >= 3000 && conductivity < 7000) {
       return DehydrationRisk.risk;
     } else {
       return DehydrationRisk.critical;
@@ -35,7 +35,7 @@ class DataProcessor {
       case DehydrationRisk.normal:
         return "Normal";
       case DehydrationRisk.risk:
-        return "Hafif Dehidratasyon (Risk)";
+        return "Dehidratasyon (Risk)";
       case DehydrationRisk.critical:
         return "Kritik Dehidratasyon (Tehlike)";
     }

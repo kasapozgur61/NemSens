@@ -29,6 +29,7 @@ class SessionDetailScreen extends StatelessWidget {
       case 'normal':
         return Colors.green;
       case 'risk':
+      case 'dehidratasyon (risk)':
       case 'hafif dehidratasyon (risk)':
         return Colors.orange;
       case 'critical':
@@ -45,8 +46,9 @@ class SessionDetailScreen extends StatelessWidget {
       case 'normal':
         return "Normal";
       case 'risk':
+      case 'dehidratasyon (risk)':
       case 'hafif dehidratasyon (risk)':
-        return "Hafif Dehidratasyon";
+        return "Dehidratasyon";
       case 'critical':
       case 'kritik':
       case 'kritik dehidratasyon (tehlike)':
@@ -175,10 +177,6 @@ class SessionDetailScreen extends StatelessWidget {
                   flex: 3,
                   child: Text("İLETKENLİK", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
                 ),
-                Expanded(
-                  flex: 3,
-                  child: Text("RİSK DURUMU", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-                ),
               ],
             ),
           ),
@@ -194,7 +192,6 @@ class SessionDetailScreen extends StatelessWidget {
                       final point = dataPoints[index];
                       final timestamp = point["timestamp"] ?? "";
                       final conductivity = (point["conductivity"] as num).toDouble();
-                      final risk = point["risk"] ?? "normal";
                       
                       return Container(
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
@@ -215,17 +212,6 @@ class SessionDetailScreen extends StatelessWidget {
                               child: Text(
                                 "${conductivity.toStringAsFixed(1)} μS/cm",
                                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: Text(
-                                _getRiskText(risk),
-                                style: TextStyle(
-                                  color: _getRiskColor(risk),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
                               ),
                             ),
                           ],
