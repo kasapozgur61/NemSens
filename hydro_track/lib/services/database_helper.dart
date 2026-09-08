@@ -81,6 +81,18 @@ class DatabaseHelper {
     return null;
   }
 
+  // E-postaya göre kullanıcı profili getir (Firebase Auth ile giriş için)
+  Future<Map<String, dynamic>?> getUserByEmail(String email) async {
+    await init();
+    final users = _inMemoryDb["users"] as List;
+    for (var u in users) {
+      if (u["email"] == email) {
+        return Map<String, dynamic>.from(u);
+      }
+    }
+    return null;
+  }
+
   // Profil Güncelleme
   Future<void> updateProfile(String email, {String? username, int? age, double? weight, double? dailyWaterTarget}) async {
     await init();

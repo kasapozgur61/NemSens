@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hydro_track/services/database_helper.dart';
+import 'package:hydro_track/services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -30,9 +30,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-      
-      final dbHelper = DatabaseHelper();
-      final success = await dbHelper.registerUser(
+
+      final error = await AuthService().register(
         _emailController.text.trim(),
         _passwordController.text,
         _nameController.text.trim(),
@@ -41,14 +40,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() => _isLoading = false);
 
       if (mounted) {
-        if (success) {
+        if (error == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Hesap başarıyla oluşturuldu! Şimdi giriş yapabilirsiniz.')),
           );
-          Navigator.of(context).pop(); // Return to LoginScreen
+          Navigator.of(context).pop();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Bu e-posta adresiyle zaten bir kayıt mevcut!')),
+            SnackBar(content: Text(error)),
           );
         }
       }
