@@ -48,11 +48,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Geçmiş Ölçümlerim'),
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: Theme.of(context).cardColor,
         elevation: 0,
         actions: [
           IconButton(
@@ -72,9 +73,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       children: [
                         Icon(Icons.history_toggle_off, size: 64, color: Colors.grey.withOpacity(0.5)),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           "Kayıtlı Ölçüm Bulunmuyor",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white70),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cs.onSurface.withOpacity(0.7)),
                         ),
                         const SizedBox(height: 8),
                         const Text(
@@ -94,13 +95,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     final dataPoints = session["dataPoints"] as List? ?? [];
                     final deviceName = session["deviceName"] ?? "Bilinmeyen Cihaz";
                     final startTime = session["startTime"] ?? "";
-                    
+
                     return Card(
-                      color: const Color(0xFF1A1A1A),
+                      color: Theme.of(context).cardColor,
                       margin: const EdgeInsets.only(bottom: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: Colors.white10),
+                        side: BorderSide(color: Theme.of(context).dividerColor),
                       ),
                       child: ListTile(
                         leading: Container(
@@ -113,7 +114,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                         title: Text(
                           deviceName,
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                          style: TextStyle(fontWeight: FontWeight.bold, color: cs.onSurface),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,7 +127,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             const SizedBox(height: 2),
                             Text(
                               "${dataPoints.length} ölçüm noktası kaydedildi",
-                              style: const TextStyle(fontSize: 12, color: Colors.white70),
+                              style: TextStyle(fontSize: 12, color: cs.onSurface.withOpacity(0.6)),
                             ),
                           ],
                         ),

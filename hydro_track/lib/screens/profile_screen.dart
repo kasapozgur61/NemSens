@@ -35,28 +35,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  void _saveProfile() {
+  Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
-      _authService.updateProfile(
+      await _authService.updateProfile(
         username: _nameController.text.trim(),
         age: int.tryParse(_ageController.text),
         weight: double.tryParse(_weightController.text),
         dailyWaterTarget: double.tryParse(_waterController.text),
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil başarıyla güncellendi!')),
-      );
-      Navigator.of(context).pop();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profil başarıyla güncellendi!')),
+        );
+        Navigator.of(context).pop();
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Profilim'),
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: Theme.of(context).cardColor,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -68,10 +70,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               // Avatar and general info card
               Card(
-                color: const Color(0xFF1A1A1A),
+                color: Theme.of(context).cardColor,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: Colors.white10),
+                  side: BorderSide(color: Theme.of(context).dividerColor),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
@@ -85,7 +87,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 12),
                       Text(
                         _authService.username ?? 'Yarışmacı Kullanıcı',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -98,23 +100,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 24),
               
-              const Text(
+              Text(
                 "Kişisel Bilgiler & Hedefler",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white70),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7)),
               ),
               const SizedBox(height: 16),
 
               // Username input
               TextFormField(
                 controller: _nameController,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 decoration: InputDecoration(
                   labelText: 'İsim / Kullanıcı Adı',
                   prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF00ADB5)),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.white10),
+                    borderSide: BorderSide(color: Theme.of(context).dividerColor),
                   ),
                 ),
                 validator: (value) {
@@ -127,7 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Age input
               TextFormField(
                 controller: _ageController,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'Yaş',
@@ -135,7 +137,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.white10),
+                    borderSide: BorderSide(color: Theme.of(context).dividerColor),
                   ),
                 ),
                 validator: (value) {
@@ -149,7 +151,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Weight input
               TextFormField(
                 controller: _weightController,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   labelText: 'Kilo (kg)',
@@ -157,7 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.white10),
+                    borderSide: BorderSide(color: Theme.of(context).dividerColor),
                   ),
                 ),
                 validator: (value) {
@@ -171,7 +173,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Daily water intake target
               TextFormField(
                 controller: _waterController,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   labelText: 'Günlük Su Hedefi (Litre)',
@@ -179,7 +181,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.white10),
+                    borderSide: BorderSide(color: Theme.of(context).dividerColor),
                   ),
                 ),
                 validator: (value) {

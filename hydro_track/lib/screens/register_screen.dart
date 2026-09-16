@@ -57,10 +57,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Kayıt Ol"),
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: Theme.of(context).cardColor,
         elevation: 0,
       ),
       body: Center(
@@ -78,10 +78,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   color: Color(0xFF00ADB5),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   "Yeni Hesap Oluştur",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
                 ),
                 const SizedBox(height: 32),
 
@@ -89,23 +89,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Container(
                   padding: const EdgeInsets.all(24.0),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A1A),
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white10),
+                    border: Border.all(color: Theme.of(context).dividerColor),
                   ),
                   child: Column(
                     children: [
                       // Name field
                       TextFormField(
                         controller: _nameController,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                         decoration: InputDecoration(
                           labelText: 'Ad / Kullanıcı Adı',
                           prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF00ADB5)),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.white24),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                           ),
                         ),
                         validator: (value) {
@@ -118,7 +118,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       // Email field
                       TextFormField(
                         controller: _emailController,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
                           labelText: 'E-posta',
@@ -126,7 +126,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.white24),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                           ),
                         ),
                         validator: (value) {
@@ -142,7 +142,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       // Password field
                       TextFormField(
                         controller: _passwordController,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                         obscureText: _obscurePassword,
                         decoration: InputDecoration(
                           labelText: 'Şifre',
@@ -157,7 +157,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.white24),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                           ),
                         ),
                         validator: (value) {
@@ -171,7 +171,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       // Confirm Password field
                       TextFormField(
                         controller: _confirmPasswordController,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                         obscureText: _obscureConfirmPassword,
                         decoration: InputDecoration(
                           labelText: 'Şifre Tekrar',
@@ -186,7 +186,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.white24),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                           ),
                         ),
                         validator: (value) {

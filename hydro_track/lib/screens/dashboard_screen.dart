@@ -1,8 +1,8 @@
-import 'dart:async';
-import 'dart:math';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:hydro_track/services/auth_service.dart';
+import 'package:hydro_track/services/ble_service.dart';
 import 'package:hydro_track/services/data_processor.dart';
 import 'package:hydro_track/widgets/app_drawer.dart';
 import 'bluetooth_screen.dart';
@@ -16,113 +16,134 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final _authService = AuthService();
-  List<FlSpot> chartData = [];
-  double currentConductivity = 2500.0; // Filtrelenmiş iletkenlik değeri
-  int timeCounter = 0;
-  Timer? _timer;
-  int _saveCounter = 0;
+  final _bleService  = BleService();
+  final _processor   = DataProcessor();
 
-  // Veri işlemci servisi ve enum durum yönetimi
-  final DataProcessor _processor = DataProcessor();
+  List<FlSpot> chartData       = [];
+  double currentG              = 0.0;   // Ham iletkenlik (muS)
+  double currentScl            = 0.0;   // Tonik bazal (muS)
+  bool   lastScrFlag           = false;
+  int    timeCounter           = 0;
+  int    _saveCounter          = 0;
+  bool   _isConnected          = false;
+
   DehydrationRisk _currentRisk = DehydrationRisk.normal;
+
+  StreamSubscription<SensorData>? _dataSub;
+  StreamSubscription<bool>?       _connSub;
 
   @override
   void initState() {
     super.initState();
     _authService.addListener(_onAuthStateChanged);
+    _isConnected = _bleService.isConnected;
 
-    // İlk grafiği doldurmak için başlangıç verileri
-    for (int i = 0; i < 10; i++) {
-      chartData.add(FlSpot(i.toDouble(), 2400.0 + Random().nextDouble() * 200));
-    }
-    timeCounter = 9;
-    
-    // ESP32'den veri geliyormuş gibi her 2 saniyede bir çalışan simülatör
-    _timer = Timer.periodic(const Duration(seconds: 2), (timer) {
-      _simulateSensorData();
+    // BLE baglanti durumu degisince UI guncelle
+    _connSub = _bleService.connectionStream.listen((connected) {
+      if (mounted) {
+        setState(() {
+          _isConnected = connected;
+          if (!connected) {
+            chartData.clear();
+            currentG   = 0.0;
+            currentScl = 0.0;
+          }
+        });
+      }
     });
+
+    // Sensor verisini dinle
+    _dataSub = _bleService.dataStream.listen(_onSensorData);
   }
 
   @override
   void dispose() {
     _authService.removeListener(_onAuthStateChanged);
-    _timer?.cancel();
+    _dataSub?.cancel();
+    _connSub?.cancel();
     super.dispose();
   }
 
   void _onAuthStateChanged() {
-    if (mounted) {
-      setState(() {});
-    }
+    if (mounted) setState(() {});
   }
 
-  // Veri İşleme ve Filtreleme Algoritması
-  void _simulateSensorData() {
-    // Sadece cihaz bağlıysa verileri güncelle ve simüle et
-    if (_authService.connectedDevice == null) {
-      return;
-    }
+  void _onSensorData(SensorData data) {
+    if (!mounted) return;
+
+    // Hareketli ortalama filtresi (g degerine uygula)
+    final filtered = _processor.filterData(data.g);
 
     setState(() {
       timeCounter++;
-      // Donanımdan gelen gürültülü ham veri simülasyonu
-      double rawInflow = currentConductivity + (Random().nextDouble() * 400) - 150;
-      
-      // Sizin yazdığınız hareketli ortalama filtresinden geçiyor
-      currentConductivity = _processor.filterData(rawInflow);
-      
-      // Sınır kontrolleri
-      if (currentConductivity < 500) currentConductivity = 500;
-      if (currentConductivity > 9500) currentConductivity = 9500;
+      currentG   = filtered;
+      currentScl = data.scl;
 
-      // Risk hesaplaması merkezi işleyiciye devredildi
-      _currentRisk = _processor.calculateRisk(currentConductivity);
+      // Risk hesapla (tonik SCL bazli)
+      _currentRisk = _processor.calculateRisk(data.scl);
 
-      // Grafik verisini güncelle (Son 15 veriyi tut)
-      chartData.add(FlSpot(timeCounter.toDouble(), currentConductivity));
-      if (chartData.length > 15) {
-        chartData.removeAt(0);
+      // Grafik guncelle (son 60 noktayi tut — 8 Hz, ~7.5 sn)
+      chartData.add(FlSpot(timeCounter.toDouble(), filtered));
+      if (chartData.length > 60) chartData.removeAt(0);
+
+      // SCR olayi bildirimi
+      if (data.scrFlag && !lastScrFlag) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.bolt, color: Colors.amber),
+                SizedBox(width: 8),
+                Text('Stres/SCR olayi algilandi!'),
+              ],
+            ),
+            duration: Duration(seconds: 2),
+            backgroundColor: Color(0xFF393E46),
+          ),
+        );
       }
+      lastScrFlag = data.scrFlag;
 
-      // Her 10 saniyede bir (5 * 2s) veriyi seansa kaydet
+      // Her 24 ornekte bir (~3 sn) seansa kaydet
       _saveCounter++;
-      if (_saveCounter >= 5) {
+      if (_saveCounter >= 24) {
         _saveCounter = 0;
-        _authService.saveDataPoint(currentConductivity, _processor.getRiskString(_currentRisk));
+        _authService.saveDataPoint(
+          data.g,
+          _processor.getRiskString(_currentRisk),
+        );
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final isConnected = _authService.connectedDevice != null;
+    final isConnected = _isConnected || _authService.connectedDevice != null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'NemSens - HydroTrack',
           style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
         ),
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: Theme.of(context).cardColor,
         elevation: 0,
         actions: [
           IconButton(
             icon: Icon(
-              isConnected ? Icons.bluetooth_connected : Icons.bluetooth_disabled, 
+              isConnected ? Icons.bluetooth_connected : Icons.bluetooth_disabled,
               color: isConnected ? Colors.green : Colors.redAccent,
             ),
             onPressed: () async {
-              // Bluetooth ekranına geçiş
               final messenger = ScaffoldMessenger.of(context);
               final selectedDevice = await Navigator.push<String>(
                 context,
                 MaterialPageRoute(builder: (context) => const BluetoothScreen()),
               );
-              
               if (selectedDevice != null) {
                 messenger.showSnackBar(
-                  SnackBar(content: Text('$selectedDevice cihazına başarıyla bağlanıldı!')),
+                  SnackBar(content: Text('$selectedDevice cihazina basariyla baglaniidi!')),
                 );
               }
             },
@@ -135,26 +156,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Cihaz Bilgi Kartı
             _buildDeviceStatusCard(isConnected),
             const SizedBox(height: 20),
-            
-            // Canlı Risk Durumu Göstergesi veya Bağlantı Uyarısı
             if (isConnected)
               _buildLiveStatusIndicator()
             else
               _buildConnectionWarningCard(),
-              
             const SizedBox(height: 20),
-            
-            // Dinamik Grafik Başlığı
-            const Text(
-              "Ter İletkenlik Trendi (μS/cm)",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white70),
+            Text(
+              'Ter Iletkenlik Trendi (muS)',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              ),
             ),
             const SizedBox(height: 10),
-            
-            // Grafik Kartı
             _buildChartCard(isConnected),
           ],
         ),
@@ -166,9 +183,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Row(
         children: [
@@ -179,7 +196,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              Icons.developer_board, 
+              Icons.developer_board,
               color: isConnected ? const Color(0xFF00ADB5) : Colors.grey,
             ),
           ),
@@ -189,16 +206,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isConnected 
-                      ? "Bağlı Cihaz: ${_authService.connectedDevice}" 
-                      : "Bağlı Cihaz: Yok",
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                  isConnected
+                      ? 'Bagli Cihaz: ${_bleService.connectedDeviceName ?? _authService.connectedDevice}'
+                      : 'Bagli Cihaz: Yok',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  isConnected 
-                      ? "Sensör Durumu: Aktif Veri Akışı (THS 4)" 
-                      : "Sensör Durumu: Bağlantı Kesildi",
+                  isConnected
+                      ? 'Sensor Durumu: Aktif Veri Akisi (8 Hz)'
+                      : 'Sensor Durumu: Baglanti Kesildi',
                   style: const TextStyle(fontSize: 13, color: Colors.grey),
                 ),
               ],
@@ -210,34 +231,70 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildLiveStatusIndicator() {
+    final riskColor = _processor.getRiskColor(_currentRisk);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _processor.getRiskColor(_currentRisk).withOpacity(0.3), width: 1.5),
+        border: Border.all(color: riskColor.withOpacity(0.4), width: 1.5),
       ),
       child: Column(
         children: [
           const Text(
-            "ANLIK DURUM",
-            style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+            'ANLIK DURUM',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
           ),
           const SizedBox(height: 16),
+          // Ham iletkenlik (g)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                currentConductivity.toStringAsFixed(1),
-                style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white),
+                currentG.toStringAsFixed(2),
+                style: TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               const SizedBox(width: 6),
-              const Text(
-                "μS/cm",
-                style: TextStyle(fontSize: 18, color: Colors.grey),
+              const Text('muS', style: TextStyle(fontSize: 18, color: Colors.grey)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Tonik + Risk durumu
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Tonik: ${currentScl.toStringAsFixed(2)} muS',
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(width: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: riskColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: riskColor.withOpacity(0.4)),
+                ),
+                child: Text(
+                  _processor.getRiskString(_currentRisk),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: riskColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
@@ -251,7 +308,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.redAccent.withOpacity(0.2), width: 1.5),
       ),
@@ -260,12 +317,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 48),
           const SizedBox(height: 12),
           const Text(
-            "CİHAZ BAĞLANTISI GEREKLİ",
-            style: TextStyle(fontSize: 15, color: Colors.redAccent, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+            'CIHAZ BAGLANTISI GEREKLI',
+            style: TextStyle(
+              fontSize: 15,
+              color: Colors.redAccent,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
           ),
           const SizedBox(height: 8),
           const Text(
-            "NemSens biosensörünüz bağlı değil. Canlı dehidratasyon takibini başlatmak için lütfen cihazınızı eşleştirin.",
+            'NemSens biosensorunuz bagli degil. Canli dehidratasyon takibini baslatmak icin lutfen cihazinizi eslestirin.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: Colors.grey),
           ),
@@ -285,12 +347,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
               if (selectedDevice != null) {
                 messenger.showSnackBar(
-                  SnackBar(content: Text('$selectedDevice cihazına başarıyla bağlanıldı!')),
+                  SnackBar(content: Text('$selectedDevice cihazina basariyla baglaniidi!')),
                 );
               }
             },
             icon: const Icon(Icons.bluetooth),
-            label: const Text("Sensöre Bağlan", style: TextStyle(fontWeight: FontWeight.bold)),
+            label: const Text('Sensore Baglan', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -298,53 +360,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildChartCard(bool isConnected) {
+    final minY = 0.0;
+    final maxY = 50.0;
     return Stack(
       children: [
         Container(
           height: 260,
           padding: const EdgeInsets.only(right: 20, left: 10, top: 24, bottom: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white10),
+            border: Border.all(color: Theme.of(context).dividerColor),
           ),
-          child: LineChart(
-            LineChartData(
-              gridData: const FlGridData(show: true, drawVerticalLine: false),
-              titlesData: const FlTitlesData(
-                rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 40,
+          child: chartData.isEmpty
+              ? const Center(
+                  child: Text(
+                    'Veri bekleniyor...',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                )
+              : LineChart(
+                  LineChartData(
+                    gridData: const FlGridData(show: true, drawVerticalLine: false),
+                    titlesData: const FlTitlesData(
+                      rightTitles:
+                          AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      topTitles:
+                          AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      bottomTitles:
+                          AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: true, reservedSize: 40),
+                      ),
+                    ),
+                    borderData: FlBorderData(show: false),
+                    minX: chartData.first.x,
+                    maxX: chartData.last.x,
+                    minY: minY,
+                    maxY: maxY,
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: chartData,
+                        isCurved: true,
+                        color: const Color(0xFF00ADB5),
+                        barWidth: 2.5,
+                        isStrokeCapRound: true,
+                        dotData: const FlDotData(show: false),
+                        belowBarData: BarAreaData(
+                          show: true,
+                          color: const Color(0xFF00ADB5).withOpacity(0.1),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              borderData: FlBorderData(show: false),
-              minX: chartData.isEmpty ? 0 : chartData.first.x,
-              maxX: chartData.isEmpty ? 0 : chartData.last.x,
-              minY: 500,
-              maxY: 10000,
-              lineBarsData: [
-                LineChartBarData(
-                  spots: chartData,
-                  isCurved: true,
-                  color: isConnected ? const Color(0xFF00ADB5) : Colors.grey,
-                  barWidth: 3,
-                  isStrokeCapRound: true,
-                  dotData: const FlDotData(show: false),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    color: isConnected 
-                        ? const Color(0xFF00ADB5).withOpacity(0.1) 
-                        : Colors.grey.withOpacity(0.05),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
         if (!isConnected)
           Positioned.fill(
@@ -360,8 +429,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Icon(Icons.lock_clock, color: Colors.white54, size: 36),
                     SizedBox(height: 8),
                     Text(
-                      "Canlı Veri Bekleniyor...",
-                      style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600),
+                      'Canli Veri Bekleniyor...',
+                      style: TextStyle(
+                          color: Colors.white70, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),

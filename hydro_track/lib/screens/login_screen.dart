@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hydro_track/services/auth_service.dart';
+import 'package:hydro_track/services/theme_service.dart';
 import 'dashboard_screen.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
@@ -50,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -144,14 +145,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   "NemSens",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.5,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const Text(
@@ -169,9 +170,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 Container(
                   padding: const EdgeInsets.all(24.0),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A1A),
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white10),
+                    border: Border.all(color: Theme.of(context).dividerColor),
                     boxShadow: [
                       BoxShadow(
                         color: const Color(0xFF00ADB5).withOpacity(0.05),
@@ -183,12 +184,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
+                      Text(
                         "Giriş Yap",
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -196,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Email Field
                       TextFormField(
                         controller: _emailController,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
                           labelText: 'E-posta',
@@ -206,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.white24),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                           ),
                         ),
                         validator: (value) {
@@ -224,7 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Password Field
                       TextFormField(
                         controller: _passwordController,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                         obscureText: _obscurePassword,
                         decoration: InputDecoration(
                           labelText: 'Şifre',
@@ -243,7 +244,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Colors.white24),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                           ),
                         ),
                         validator: (value) {
@@ -317,6 +318,39 @@ class _LoginScreenState extends State<LoginScreen> {
                           "Hesabınız yok mu? Şimdi Kaydolun",
                           style: TextStyle(color: Color(0xFF00ADB5), fontWeight: FontWeight.bold),
                         ),
+                      ),
+                      const SizedBox(height: 16),
+                      ValueListenableBuilder<ThemeMode>(
+                        valueListenable: ThemeService(),
+                        builder: (context, themeMode, _) {
+                          final isDark = themeMode == ThemeMode.dark;
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                isDark ? Icons.dark_mode : Icons.light_mode,
+                                color: isDark ? Colors.amber : const Color(0xFF00ADB5),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                isDark ? 'Gece Modu' : 'Gunduz Modu',
+                                style: TextStyle(
+                                  color: isDark ? Colors.amber : const Color(0xFF00ADB5),
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Switch(
+                                value: isDark,
+                                activeColor: Colors.amber,
+                                inactiveThumbColor: const Color(0xFF00ADB5),
+                                inactiveTrackColor: const Color(0xFF00ADB5).withOpacity(0.3),
+                                onChanged: (_) => ThemeService().toggleTheme(),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),

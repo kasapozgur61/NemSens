@@ -60,6 +60,7 @@ class SessionDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final dataPoints = session["dataPoints"] as List? ?? [];
     final deviceName = session["deviceName"] ?? "Bilinmeyen Cihaz";
     final startTime = session["startTime"] ?? "";
@@ -75,10 +76,10 @@ class SessionDetailScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Seans Detayları'),
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: Theme.of(context).cardColor,
         elevation: 0,
       ),
       body: Column(
@@ -87,9 +88,9 @@ class SessionDetailScreen extends StatelessWidget {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              color: Color(0xFF1A1A1A),
-              border: Border(bottom: BorderSide(color: Colors.white10)),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,7 +101,7 @@ class SessionDetailScreen extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       deviceName,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cs.onSurface),
                     ),
                   ],
                 ),
@@ -110,7 +111,7 @@ class SessionDetailScreen extends StatelessWidget {
                   style: const TextStyle(color: Colors.grey, fontSize: 13),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Statistics
                 Row(
                   children: [
@@ -118,9 +119,9 @@ class SessionDetailScreen extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF121212),
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white10),
+                          border: Border.all(color: Theme.of(context).dividerColor),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,7 +130,7 @@ class SessionDetailScreen extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               "${avgConductivity.toStringAsFixed(1)} μS/cm",
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: cs.onSurface),
                             ),
                           ],
                         ),
@@ -140,9 +141,9 @@ class SessionDetailScreen extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF121212),
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white10),
+                          border: Border.all(color: Theme.of(context).dividerColor),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,11 +163,11 @@ class SessionDetailScreen extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Data Points List Table Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            color: const Color(0xFF121212),
+            color: Theme.of(context).scaffoldBackgroundColor,
             child: const Row(
               children: [
                 Expanded(
@@ -180,7 +181,7 @@ class SessionDetailScreen extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Data Points ListView
           Expanded(
             child: dataPoints.isEmpty
@@ -192,11 +193,11 @@ class SessionDetailScreen extends StatelessWidget {
                       final point = dataPoints[index];
                       final timestamp = point["timestamp"] ?? "";
                       final conductivity = (point["conductivity"] as num).toDouble();
-                      
+
                       return Container(
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-                        decoration: const BoxDecoration(
-                          border: Border(bottom: BorderSide(color: Colors.white10)),
+                        decoration: BoxDecoration(
+                          border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
                         ),
                         child: Row(
                           children: [
@@ -204,14 +205,14 @@ class SessionDetailScreen extends StatelessWidget {
                               flex: 2,
                               child: Text(
                                 _formatTimeOnly(timestamp),
-                                style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                style: TextStyle(color: cs.onSurface.withOpacity(0.7), fontSize: 13),
                               ),
                             ),
                             Expanded(
                               flex: 3,
                               child: Text(
                                 "${conductivity.toStringAsFixed(1)} μS/cm",
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                                style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.w600, fontSize: 13),
                               ),
                             ),
                           ],

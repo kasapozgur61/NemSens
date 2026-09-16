@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hydro_track/services/database_helper.dart';
 
 class AuthService extends ChangeNotifier {
@@ -26,7 +27,7 @@ class AuthService extends ChangeNotifier {
   double get dailyWaterTarget => _dailyWaterTarget;
   Map<String, dynamic>? get currentSession => _currentSession;
 
-  /// Firebase Auth ile giriş yapar, profil bilgilerini yerel JSON'dan yükler.
+  /// Firebase Auth ile giriş yapar, profil bilgilerini Firestore'dan yükler.
   Future<bool> login(String email, String password) async {
     try {
       final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -36,12 +37,25 @@ class AuthService extends ChangeNotifier {
       if (credential.user != null) {
         _isLoggedIn = true;
         _email = email;
-        // Profil bilgilerini yerel veritabanından yükle
-        final profile = await DatabaseHelper().getUserByEmail(email);
-        _username = profile?["username"] ?? email.split('@')[0];
-        _age = profile?["age"] ?? 22;
-        _weight = (profile?["weight"] as num?)?.toDouble() ?? 70.0;
-        _dailyWaterTarget = (profile?["dailyWaterTarget"] as num?)?.toDouble() ?? 2.5;
+        // Profil bilgilerini Firestore'dan yükle
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(email)
+            .get();
+        if (doc.exists && doc.data() != null) {
+          final data = doc.data()!;
+          _username = data['username'] ?? email.split('@')[0];
+          _age = (data['age'] as num?)?.toInt() ?? 22;
+          _weight = (data['weight'] as num?)?.toDouble() ?? 70.0;
+          _dailyWaterTarget = (data['dailyWaterTarget'] as num?)?.toDouble() ?? 2.5;
+        } else {
+          // Firestore'da yoksa yerel DB'ye bak
+          final profile = await DatabaseHelper().getUserByEmail(email);
+          _username = profile?['username'] ?? email.split('@')[0];
+          _age = (profile?['age'] as num?)?.toInt() ?? 22;
+          _weight = (profile?['weight'] as num?)?.toDouble() ?? 70.0;
+          _dailyWaterTarget = (profile?['dailyWaterTarget'] as num?)?.toDouble() ?? 2.5;
+        }
         notifyListeners();
         return true;
       }
@@ -53,7 +67,7 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  /// Firebase Auth ile kayıt olur, profil bilgilerini yerel JSON'a kaydeder.
+  /// Firebase Auth ile kayıt olur, profil bilgilerini Firestore'a ve yerel DB'ye kaydeder.
   /// Başarılıysa null, hata varsa Türkçe hata mesajı döndürür.
   Future<String?> register(String email, String password, String username) async {
     try {
@@ -62,8 +76,23 @@ class AuthService extends ChangeNotifier {
         password: password,
       );
       if (credential.user != null) {
-        // Profil bilgilerini yerel veritabanına kaydet
-        await DatabaseHelper().registerUser(email, password, username);
+        // Profil bilgilerini Firestore'a ve yerel DB'ye kaydet
+        // Bu kısım başarısız olsa bile kayıt başarılı sayılır
+        try {
+          await FirebaseFirestore.instance.collection('users').doc(email).set({
+            'username': username,
+            'age': 22,
+            'weight': 70.0,
+            'dailyWaterTarget': 2.5,
+          });
+        } catch (_) {
+          // Firestore kaydı başarısız olsa da Firebase hesabı oluşturuldu
+        }
+        try {
+          await DatabaseHelper().registerUser(email, password, username);
+        } catch (_) {
+          // Yerel DB kaydı başarısız olsa da devam et
+        }
       }
       return null; // başarılı
     } on FirebaseAuthException catch (e) {
@@ -75,10 +104,10 @@ class AuthService extends ChangeNotifier {
         case 'invalid-email':
           return 'Geçersiz e-posta adresi.';
         default:
-          return 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.';
+          return 'Kayıt sırasında bir hata oluştu: ${e.message}';
       }
-    } catch (_) {
-      return 'Kayıt sırasında bir hata oluştu. Lütfen tekrar deneyin.';
+    } catch (e) {
+      return 'Beklenmeyen bir hata oluştu: $e';
     }
   }
 
@@ -94,13 +123,27 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateProfile({String? username, int? age, double? weight, double? dailyWaterTarget}) {
+  /// Profil bilgilerini Firestore'a kaydeder (kalıcı).
+  Future<void> updateProfile({String? username, int? age, double? weight, double? dailyWaterTarget}) async {
     if (username != null) _username = username;
     if (age != null) _age = age;
     if (weight != null) _weight = weight;
     if (dailyWaterTarget != null) _dailyWaterTarget = dailyWaterTarget;
-    
+
     if (_email != null) {
+      final updateData = <String, dynamic>{};
+      if (username != null) updateData['username'] = username;
+      if (age != null) updateData['age'] = age;
+      if (weight != null) updateData['weight'] = weight;
+      if (dailyWaterTarget != null) updateData['dailyWaterTarget'] = dailyWaterTarget;
+
+      // Firestore'a kaydet
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_email!)
+          .update(updateData);
+
+      // Yerel DB'yi de güncelle
       DatabaseHelper().updateProfile(
         _email!,
         username: username,

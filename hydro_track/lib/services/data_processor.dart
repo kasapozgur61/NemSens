@@ -18,14 +18,19 @@ class DataProcessor {
     return sum / _window.length;
   }
 
-  // 2. Risk Analizi ve Eşik Değer Algoritması
+  // 2. Risk Analizi — Tonik SCL (μS) bazlı GSR eşikleri
+  // scl < 0.5 → sensör bağlı değil / kritik kuru
+  // 0.5–1.0  → çok düşük (muhtemelen çok düşük temas)
+  // 1.0–8.0  → Normal hidrasyon
+  // 8.0–20.0 → Hafif dehidrasyon / stres
+  // > 20.0   → Ciddi dehidrasyon
   DehydrationRisk calculateRisk(double conductivity) {
-    if (conductivity < 3000) {
-      return DehydrationRisk.normal;
-    } else if (conductivity >= 3000 && conductivity < 7000) {
+    if (conductivity < 0.5 || conductivity > 20.0) {
+      return DehydrationRisk.critical;
+    } else if (conductivity >= 8.0) {
       return DehydrationRisk.risk;
     } else {
-      return DehydrationRisk.critical;
+      return DehydrationRisk.normal;
     }
   }
 
